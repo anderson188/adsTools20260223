@@ -1,4 +1,5 @@
 // Cloudflare Workers 主入口文件
+const { addCorsHeaders, handleOptions } = require('./middleware');
 
 // 使用动态导入避免启动时内存超限
 let authRoutes, linksRoutes, domainsRoutes, GoogleAdsManagerClass, DatabaseManager;
@@ -25,60 +26,67 @@ async function loadModules() {
     }
 }
 
-    // 主请求处理器
-    async function handleRequest(request, env) {
-        const url = new URL(request.url);
-        const path = url.pathname;
-        
-        // 按需加载API路由模块（带错误处理）
-        let modules;
-        try {
-            modules = await loadModules();
-            // 检查模块是否成功加载
-            if (!modules.authRoutes || !modules.linksRoutes || !modules.domainsRoutes) {
-                throw new Error('模块加载不完整');
-            }
-        } catch (error) {
-            console.error('模块加载失败:', error);
-            return new Response(JSON.stringify({
-                success: false,
-                message: '服务器内部错误：模块加载失败 - ' + error.message,
-                error: 'MODULE_LOAD_ERROR'
-            }), {
-                status: 500,
-                headers: { 'Content-Type': 'application/json' }
-            });
+// 主请求处理器
+async function handleRequest(request, env) {
+    const url = new URL(request.url);
+    const path = url.pathname;
+    
+    // 处理 CORS 预检请求
+    if (request.method === 'OPTIONS') {
+        return handleOptions(request);
+    }
+    
+    // 按需加载API路由模块（带错误处理）
+    let modules;
+    try {
+        modules = await loadModules();
+        // 检查模块是否成功加载
+        if (!modules.authRoutes || !modules.linksRoutes || !modules.domainsRoutes) {
+            throw new Error('模块加载不完整');
         }
+    } catch (error) {
+        console.error('模块加载失败:', error);
+        const errorResponse = new Response(JSON.stringify({
+            success: false,
+            message: '服务器内部错误：模块加载失败 - ' + error.message,
+            error: 'MODULE_LOAD_ERROR'
+        }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' }
+        });
+        return addCorsHeaders(errorResponse);
+    }
     
     // API路由分发
+    let response;
     if (path === '/api/auth/login') {
         if (request.method === 'POST') {
-            return await modules.authRoutes.login(request, env);
+            response = await modules.authRoutes.login(request, env);
         }
     } else if (path === '/api/auth/profile') {
         if (request.method === 'GET') {
-            return await modules.authRoutes.getProfile(request, env);
+            response = await modules.authRoutes.getProfile(request, env);
         }
     } else if (path === '/api/links') {
         if (request.method === 'GET') {
-            return await modules.linksRoutes.getLinks(request, env);
+            response = await modules.linksRoutes.getLinks(request, env);
         } else if (request.method === 'POST') {
-            return await modules.linksRoutes.createLink(request, env);
+            response = await modules.linksRoutes.createLink(request, env);
         }
     } else if (path.startsWith('/api/links/')) {
         const linkId = path.split('/')[3];
         if (request.method === 'PATCH' && linkId) {
-            return await modules.linksRoutes.updateLinkStatus(request, env, linkId);
+            response = await modules.linksRoutes.updateLinkStatus(request, env, linkId);
         }
     } else if (path === '/api/dashboard/stats') {
         if (request.method === 'GET') {
-            return await modules.linksRoutes.getDashboardStats(request, env);
+            response = await modules.linksRoutes.getDashboardStats(request, env);
         }
     } else if (path === '/api/domains') {
         if (request.method === 'GET') {
-            return await modules.domainsRoutes.getDomains(request, env);
+            response = await modules.domainsRoutes.getDomains(request, env);
         } else if (request.method === 'POST') {
-            return await modules.domainsRoutes.addDomain(request, env);
+            response = await modules.domainsRoutes.addDomain(request, env);
         }
     }
 
@@ -104,13 +112,14 @@ if (path === '/') {
 }
 
 // 404处理
-return new Response(JSON.stringify({
+response = new Response(JSON.stringify({
     success: false,
     message: '接口不存在'
 }), {
     status: 404,
     headers: { 'Content-Type': 'application/json' }
 });
+return addCorsHeaders(response);
 }
 
 // 定时任务处理函数 - 自动更换链接
