@@ -1,5 +1,5 @@
 // 广告链接管理API路由
-const DatabaseManager = require('../utils/db');
+import DatabaseManager from '../utils/db.js';
 
 exports.getLinks = async (request, env) => {
     try {
@@ -16,7 +16,8 @@ exports.getLinks = async (request, env) => {
         }
 
         const token = authHeader.substring(7);
-        const auth = new (require('../utils/auth'))(env.JWT_SECRET);
+        const { default: AuthManager } = await import('../utils/auth.js');
+        const auth = new AuthManager(env.JWT_SECRET);
         const decoded = auth.verifyToken(token);
 
         const url = new URL(request.url);
@@ -64,7 +65,8 @@ exports.createLink = async (request, env) => {
         }
 
         const token = authHeader.substring(7);
-        const auth = new (require('../utils/auth'))(env.JWT_SECRET);
+        const { default: AuthManager } = await import('../utils/auth.js');
+        const auth = new AuthManager(env.JWT_SECRET);
         const decoded = auth.verifyToken(token);
 
         const linkData = await request.json();
@@ -133,7 +135,8 @@ exports.updateLinkStatus = async (request, env, linkId) => {
         }
 
         const token = authHeader.substring(7);
-        const auth = new (require('../utils/auth'))(env.JWT_SECRET);
+        const { default: AuthManager } = await import('../utils/auth.js');
+        const auth = new AuthManager(env.JWT_SECRET);
         const decoded = auth.verifyToken(token);
 
         const { status } = await request.json();
@@ -196,7 +199,8 @@ exports.getDashboardStats = async (request, env) => {
         }
 
         const token = authHeader.substring(7);
-        const auth = new (require('../utils/auth'))(env.JWT_SECRET);
+        const { default: AuthManager } = await import('../utils/auth.js');
+        const auth = new AuthManager(env.JWT_SECRET);
         const decoded = auth.verifyToken(token);
 
         const db = new DatabaseManager(env.DB);

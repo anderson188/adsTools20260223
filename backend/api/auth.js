@@ -1,6 +1,6 @@
 // 认证相关API路由
-const AuthManager = require('../utils/auth');
-const DatabaseManager = require('../utils/db');
+import AuthManager from '../utils/auth.js';
+import DatabaseManager from '../utils/db.js';
 
 exports.login = async (request, env) => {
     try {

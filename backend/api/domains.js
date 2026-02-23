@@ -1,5 +1,5 @@
 // 域名池管理API路由
-const DatabaseManager = require('../utils/db');
+import DatabaseManager from '../utils/db.js';
 
 exports.getDomains = async (request, env) => {
     try {
@@ -53,7 +53,8 @@ exports.addDomain = async (request, env) => {
         }
 
         const token = authHeader.substring(7);
-        const auth = new (require('../utils/auth'))(env.JWT_SECRET);
+        const { default: AuthManager } = await import('../utils/auth.js');
+        const auth = new AuthManager(env.JWT_SECRET);
         const decoded = auth.verifyToken(token);
 
         const db = new DatabaseManager(env.DB);

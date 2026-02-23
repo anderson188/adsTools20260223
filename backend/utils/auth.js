@@ -1,8 +1,8 @@
 // 认证和用户管理工具类
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 
-class AuthManager {
+export default class AuthManager {
     constructor(jwtSecret) {
         this.jwtSecret = jwtSecret;
         this.saltRounds = 12;
