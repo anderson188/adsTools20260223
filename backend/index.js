@@ -1,44 +1,62 @@
 // Cloudflare Workers 主入口文件
-const authRoutes = require('./api/auth');
-const linksRoutes = require('./api/links');
-const domainsRoutes = require('./api/domains');
-const GoogleAdsManager = require('./utils/googleAds');
-const DatabaseManager = require('./utils/db');
+
+// 使用动态导入避免启动时内存超限
+let authRoutes, linksRoutes, domainsRoutes, GoogleAdsManagerClass, DatabaseManager;
+
+// 按需加载模块的函数
+async function loadModules() {
+    if (!authRoutes) {
+        const authModule = await import('./api/auth.js');
+        authRoutes = authModule;
+    }
+    if (!linksRoutes) {
+        const linksModule = await import('./api/links.js');
+        linksRoutes = linksModule;
+    }
+    if (!domainsRoutes) {
+        const domainsModule = await import('./api/domains.js');
+        domainsRoutes = domainsModule;
+    }
+    return { authRoutes, linksRoutes, domainsRoutes };
+}
 
 // 主请求处理器
 async function handleRequest(request, env) {
     const url = new URL(request.url);
     const path = url.pathname;
     
+    // 按需加载API路由模块
+    const modules = await loadModules();
+    
     // API路由分发
     if (path === '/api/auth/login') {
         if (request.method === 'POST') {
-            return await authRoutes.login(request, env);
+            return await modules.authRoutes.login(request, env);
         }
     } else if (path === '/api/auth/profile') {
         if (request.method === 'GET') {
-            return await authRoutes.getProfile(request, env);
+            return await modules.authRoutes.getProfile(request, env);
         }
     } else if (path === '/api/links') {
         if (request.method === 'GET') {
-            return await linksRoutes.getLinks(request, env);
+            return await modules.linksRoutes.getLinks(request, env);
         } else if (request.method === 'POST') {
-            return await linksRoutes.createLink(request, env);
+            return await modules.linksRoutes.createLink(request, env);
         }
     } else if (path.startsWith('/api/links/')) {
         const linkId = path.split('/')[3];
         if (request.method === 'PATCH' && linkId) {
-            return await linksRoutes.updateLinkStatus(request, env, linkId);
+            return await modules.linksRoutes.updateLinkStatus(request, env, linkId);
         }
     } else if (path === '/api/dashboard/stats') {
         if (request.method === 'GET') {
-            return await linksRoutes.getDashboardStats(request, env);
+            return await modules.linksRoutes.getDashboardStats(request, env);
         }
     } else if (path === '/api/domains') {
         if (request.method === 'GET') {
-            return await domainsRoutes.getDomains(request, env);
+            return await modules.domainsRoutes.getDomains(request, env);
         } else if (request.method === 'POST') {
-            return await domainsRoutes.addDomain(request, env);
+            return await modules.domainsRoutes.addDomain(request, env);
         }
     }
 
@@ -57,8 +75,15 @@ async function handleScheduled(event, env, ctx) {
     console.log('开始执行定时任务 - 自动更换广告链接');
     
     try {
-        const db = new DatabaseManager(env.DB);
-        const googleAds = new GoogleAdsManager({
+        // 动态导入数据库模块
+        const dbModule = await import('./utils/db.js');
+        const DatabaseManagerClass = dbModule.default;
+        const db = new DatabaseManagerClass(env.DB);
+        
+        // 动态导入轻量级 Google Ads 模块
+        const googleAdsModule = await import('./utils/googleAdsLite.js');
+        GoogleAdsManagerClass = googleAdsModule.default;
+        const googleAds = new GoogleAdsManagerClass({
             clientId: env.GOOGLE_ADS_CLIENT_ID,
             clientSecret: env.GOOGLE_ADS_CLIENT_SECRET,
             developerToken: env.GOOGLE_ADS_DEVELOPER_TOKEN,
@@ -91,8 +116,8 @@ async function handleScheduled(event, env, ctx) {
                     selectedDomain.domain
                 );
 
-                // 更新Google Ads广告系列
-                const updateResult = await googleAds.updateCampaignTrackingTemplate(
+                // 更新Google Ads广告系列 - 使用模拟模式避免API调用
+                const updateResult = googleAds.simulateUpdate(
                     link.google_ads_account_id,
                     link.campaign_name,
                     trackingTemplate

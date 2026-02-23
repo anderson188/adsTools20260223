@@ -4,6 +4,15 @@ class AdsManagerApp {
         this.token = localStorage.getItem('authToken');
         this.currentUser = null;
         this.menus = [];
+        
+        // 加载 API 配置
+        if (typeof API_CONFIG === 'undefined') {
+            // 如果 config.js 未加载，使用默认配置
+            this.apiBaseUrl = 'https://ads-automation-api.YOUR_SUBDOMAIN.workers.dev';
+        } else {
+            this.apiBaseUrl = API_CONFIG.BASE_URL;
+        }
+        
         this.init();
     }
 
@@ -86,7 +95,7 @@ class AdsManagerApp {
         const messageEl = document.getElementById('loginMessage');
 
         try {
-            const response = await fetch('/api/auth/login', {
+            const response = await fetch(`${this.apiBaseUrl}/api/auth/login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -120,7 +129,7 @@ class AdsManagerApp {
     // 验证Token
     async validateToken() {
         try {
-            const response = await fetch('/api/auth/profile', {
+            const response = await fetch(`${this.apiBaseUrl}/api/auth/profile`, {
                 headers: {
                     'Authorization': `Bearer ${this.token}`
                 }
@@ -285,7 +294,7 @@ class AdsManagerApp {
     // 加载仪表板统计数据
     async loadDashboardStats() {
         try {
-            const response = await fetch('/api/dashboard/stats', {
+            const response = await fetch(`${this.apiBaseUrl}/api/dashboard/stats`, {
                 headers: {
                     'Authorization': `Bearer ${this.token}`
                 }
@@ -317,7 +326,7 @@ class AdsManagerApp {
             if (affiliate) params.append('affiliate_name', affiliate);
             if (campaign) params.append('campaign_name', campaign);
             
-            const response = await fetch(`/api/links?${params}`, {
+            const response = await fetch(`${this.apiBaseUrl}/api/links?${params}`, {
                 headers: {
                     'Authorization': `Bearer ${this.token}`
                 }
@@ -370,7 +379,7 @@ class AdsManagerApp {
         const newStatus = currentStatus === 'running' ? 'stopped' : 'running';
         
         try {
-            const response = await fetch(`/api/links/${linkId}/status`, {
+            const response = await fetch(`${this.apiBaseUrl}/api/links/${linkId}/status`, {
                 method: 'PATCH',
                 headers: {
                     'Authorization': `Bearer ${this.token}`,
@@ -445,6 +454,21 @@ class AdsManagerApp {
             this.handleAddLink();
         });
     }
+
+    // 处理新增链接
+    async handleAddLink() {
+        const formData = new FormData(document.getElementById('addLinkForm'));
+        const linkData = Object.fromEntries(formData);
+        
+        try {
+            const response = await fetch(`${this.apiBaseUrl}/api/links`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${this.token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(linkData)
+            });
 
     // 处理新增链接
     async handleAddLink() {
