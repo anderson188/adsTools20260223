@@ -1,4 +1,4 @@
-// 认证和用户管理工具类
+// 认证和用户管理工具类 - 适配Cloudflare Workers
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
@@ -13,7 +13,7 @@ export default class AuthManager {
         return await bcrypt.hash(password, this.saltRounds);
     }
 
-    // 密码验证
+    // 验证密码
     async verifyPassword(password, hash) {
         return await bcrypt.compare(password, hash);
     }
@@ -23,7 +23,7 @@ export default class AuthManager {
         return jwt.sign(payload, this.jwtSecret, { expiresIn: '24h' });
     }
 
-    // 验证JWT Token
+    // 验证Token
     verifyToken(token) {
         try {
             return jwt.verify(token, this.jwtSecret);
@@ -32,17 +32,8 @@ export default class AuthManager {
         }
     }
 
-    // 检查用户权限
-    hasPermission(userRoles, requiredPermission) {
-        // 这里简化处理，实际应该检查具体的权限标识
-        const adminRoles = ['超级管理员'];
-        return userRoles.some(role => adminRoles.includes(role.name));
-    }
-
-    // 验证管理员权限
-    isAdmin(userRoles) {
-        return this.hasPermission(userRoles, 'admin');
+    // 检查是否为管理员
+    isAdmin(roles) {
+        return roles.some(role => role.name === 'admin');
     }
 }
-
-module.exports = AuthManager;
