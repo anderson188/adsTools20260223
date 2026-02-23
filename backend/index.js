@@ -123,14 +123,69 @@ async function handleRequest(request, env) {
             headers: { 'Content-Type': 'application/json' }
         });
     } else if (path === '/api/links' && request.method === 'POST') {
-        response = new Response(JSON.stringify({
-            success: true,
-            message: '广告链接创建成功',
-            data: { id: Date.now() }
-        }), {
-            status: 201,
-            headers: { 'Content-Type': 'application/json' }
-        });
+        try {
+            // 验证认证
+            const authHeader = request.headers.get('Authorization');
+            if (!authHeader || !authHeader.startsWith('Bearer ')) {
+                response = new Response(JSON.stringify({
+                    success: false,
+                    message: '未提供有效的认证令牌'
+                }), {
+                    status: 401,
+                    headers: { 'Content-Type': 'application/json' }
+                });
+            } else {
+                // 处理FormData或JSON
+                let linkData;
+                const contentType = request.headers.get('Content-Type');
+                
+                if (contentType && contentType.includes('multipart/form-data')) {
+                    // 处理FormData
+                    const formData = await request.formData();
+                    linkData = {};
+                    for (const [key, value] of formData.entries()) {
+                        linkData[key] = value;
+                    }
+                } else {
+                    // 处理JSON
+                    linkData = await request.json();
+                }
+                
+                // 验证必需字段
+                const requiredFields = ['affiliate_name', 'affiliate_link', 'google_ads_account_id', 'campaign_name', 'landing_domain'];
+                const missingFields = requiredFields.filter(field => !linkData[field]);
+                
+                if (missingFields.length > 0) {
+                    response = new Response(JSON.stringify({
+                        success: false,
+                        message: `缺少必需字段: ${missingFields.join(', ')}`
+                    }), {
+                        status: 400,
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                } else {
+                    response = new Response(JSON.stringify({
+                        success: true,
+                        message: '广告链接创建成功',
+                        data: { 
+                            id: Date.now(),
+                            ...linkData
+                        }
+                    }), {
+                        status: 201,
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                }
+            }
+        } catch (error) {
+            response = new Response(JSON.stringify({
+                success: false,
+                message: '创建广告链接失败: ' + error.message
+            }), {
+                status: 500,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
     } else if (path.startsWith('/api/links/') && request.method === 'PATCH') {
         const linkId = path.split('/')[3];
         response = new Response(JSON.stringify({
