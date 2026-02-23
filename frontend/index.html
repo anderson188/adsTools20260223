@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>广告链接自动化管理系统</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <!-- 登录页面 -->
+    <div id="loginPage" class="page active">
+        <div class="login-container">
+            <div class="login-box">
+                <div class="login-header">
+                    <i class="fas fa-link fa-3x" style="color: #007bff;"></i>
+                    <h2>广告链接管理系统</h2>
+                    <p>请登录您的账户</p>
+                </div>
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label for="username">用户名</label>
+                        <input type="text" id="username" name="username" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">密码</label>
+                        <input type="password" id="password" name="password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full">登录</button>
+                </form>
+                <div id="loginMessage" class="message"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主应用页面 -->
+    <div id="mainApp" class="page">
+        <!-- 侧边栏 -->
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <i class="fas fa-link"></i>
+                <span>广告管理系统</span>
+            </div>
+            <ul class="sidebar-menu" id="sidebarMenu">
+                <!-- 动态生成菜单 -->
+            </ul>
+        </nav>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+            <!-- 顶部导航 -->
+            <header class="topbar">
+                <div class="topbar-left">
+                    <button class="sidebar-toggle" id="sidebarToggle">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h1 id="pageTitle">仪表板</h1>
+                </div>
+                <div class="topbar-right">
+                    <div class="user-info">
+                        <span id="userName">管理员</span>
+                        <button class="btn btn-outline" id="logoutBtn">退出</button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- 页面内容 -->
+            <div class="content-wrapper">
+                <!-- 仪表板 -->
+                <div id="dashboardPage" class="content-page active">
+                    <div class="dashboard-stats">
+                        <div class="stat-card">
+                            <div class="stat-icon bg-primary">
+                                <i class="fas fa-link"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3 id="totalLinks">0</h3>
+                                <p>总链接数</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon bg-success">
+                                <i class="fas fa-play"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3 id="runningLinks">0</h3>
+                                <p>运行中链接</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon bg-warning">
+                                <i class="fas fa-stop"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3 id="stoppedLinks">0</h3>
+                                <p>已停止链接</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon bg-info">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3 id="totalRuns">0</h3>
+                                <p>总运行次数</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 广告链接管理 -->
+                <div id="linksPage" class="content-page">
+                    <div class="page-header">
+                        <h2>广告链接管理</h2>
+                        <button class="btn btn-primary" id="addLinkBtn">
+                            <i class="fas fa-plus"></i> 新增链接
+                        </button>
+                    </div>
+                    
+                    <!-- 筛选器 -->
+                    <div class="filters">
+                        <select id="statusFilter">
+                            <option value="">全部状态</option>
+                            <option value="running">运行中</option>
+                            <option value="stopped">已停止</option>
+                        </select>
+                        <input type="text" id="affiliateFilter" placeholder="搜索联盟名称...">
+                        <input type="text" id="campaignFilter" placeholder="搜索广告系列...">
+                        <button class="btn btn-secondary" id="applyFilters">筛选</button>
+                    </div>
+
+                    <!-- 链接列表 -->
+                    <div class="table-container">
+                        <table class="data-table" id="linksTable">
+                            <thead>
+                                <tr>
+                                    <th>联盟名称</th>
+                                    <th>广告系列</th>
+                                    <th>Google Ads账户</th>
+                                    <th>运行频率</th>
+                                    <th>状态</th>
+                                    <th>创建时间</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- 动态生成 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 其他页面占位符 -->
+                <div id="domainsPage" class="content-page">
+                    <h2>域名池管理</h2>
+                    <p>域名池管理功能开发中...</p>
+                </div>
+
+                <div id="reportsPage" class="content-page">
+                    <h2>统计报表</h2>
+                    <p>统计报表功能开发中...</p>
+                </div>
+
+                <div id="adminPage" class="content-page">
+                    <h2>系统管理</h2>
+                    <p>系统管理功能开发中...</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 模态框 -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">标题</h3>
+                <button class="modal-close" id="modalClose">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- 动态内容 -->
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
