@@ -1,0 +1,17 @@
+name = "ads-automation-api"
+compatibility_date = "2024-10-01"
+compatibility_flags = ["nodejs_compat"]
+main = "index.js"
+
+# 环境变量
+[vars]
+JWT_SECRET = "temp-jwt-secret-for-testing"
+GOOGLE_ADS_DEVELOPER_TOKEN = "temp-developer-token"
+GOOGLE_ADS_CLIENT_ID = "temp-client-id"
+GOOGLE_ADS_CLIENT_SECRET = "temp-client-secret"
+GOOGLE_ADS_REFRESH_TOKEN = "temp-refresh-token"
+WORKER_DOMAIN = "ads-automation-api.workers.dev"
+
+# 定时任务
+[triggers]
+cron = ["*/5 * * * *"]

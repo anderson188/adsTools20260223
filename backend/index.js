@@ -3,30 +3,52 @@
 // 使用动态导入避免启动时内存超限
 let authRoutes, linksRoutes, domainsRoutes, GoogleAdsManagerClass, DatabaseManager;
 
-// 按需加载模块的函数
+// 按需加载模块的函数（带错误处理）
 async function loadModules() {
-    if (!authRoutes) {
-        const authModule = await import('./api/auth.js');
-        authRoutes = authModule;
+    try {
+        if (!authRoutes) {
+            const authModule = await import('./api/auth.js');
+            authRoutes = authModule;
+        }
+        if (!linksRoutes) {
+            const linksModule = await import('./api/links.js');
+            linksRoutes = linksModule;
+        }
+        if (!domainsRoutes) {
+            const domainsModule = await import('./api/domains.js');
+            domainsRoutes = domainsModule;
+        }
+        return { authRoutes, linksRoutes, domainsRoutes };
+    } catch (error) {
+        console.error('加载模块失败:', error);
+        throw error;
     }
-    if (!linksRoutes) {
-        const linksModule = await import('./api/links.js');
-        linksRoutes = linksModule;
-    }
-    if (!domainsRoutes) {
-        const domainsModule = await import('./api/domains.js');
-        domainsRoutes = domainsModule;
-    }
-    return { authRoutes, linksRoutes, domainsRoutes };
 }
 
-// 主请求处理器
-async function handleRequest(request, env) {
-    const url = new URL(request.url);
-    const path = url.pathname;
-    
-    // 按需加载API路由模块
-    const modules = await loadModules();
+    // 主请求处理器
+    async function handleRequest(request, env) {
+        const url = new URL(request.url);
+        const path = url.pathname;
+        
+        // 按需加载API路由模块（带错误处理）
+        let modules;
+        try {
+            modules = await loadModules();
+            // 检查模块是否成功加载
+            if (!modules.authRoutes || !modules.linksRoutes || !modules.domainsRoutes) {
+                throw new Error('模块加载不完整');
+            }
+        } catch (error) {
+            console.error('模块加载失败:', error);
+            return new Response(JSON.stringify({
+                success: false,
+                message: '服务器内部错误：模块加载失败 - ' + error.message,
+                error: 'MODULE_LOAD_ERROR'
+            }), {
+                status: 500,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
     
     // API路由分发
     if (path === '/api/auth/login') {
@@ -60,14 +82,35 @@ async function handleRequest(request, env) {
         }
     }
 
-    // 404处理
+// 根路径处理 - 用于调试
+if (path === '/') {
     return new Response(JSON.stringify({
-        success: false,
-        message: '接口不存在'
+        success: true,
+        message: 'API 服务运行正常',
+        timestamp: new Date().toISOString(),
+        availableEndpoints: [
+            'POST /api/auth/login',
+            'GET /api/auth/profile', 
+            'GET /api/links',
+            'POST /api/links',
+            'PATCH /api/links/:id/status',
+            'GET /api/dashboard/stats',
+            'GET /api/domains'
+        ]
     }), {
-        status: 404,
+        status: 200,
         headers: { 'Content-Type': 'application/json' }
     });
+}
+
+// 404处理
+return new Response(JSON.stringify({
+    success: false,
+    message: '接口不存在'
+}), {
+    status: 404,
+    headers: { 'Content-Type': 'application/json' }
+});
 }
 
 // 定时任务处理函数 - 自动更换链接

@@ -1,12 +1,12 @@
-// API 配置
+// API 配置 - 使用实际域名
 const API_CONFIG = {
-    // 根据实际部署的 Workers 域名进行修改
-    BASE_URL: 'https://ads-automation-api.YOUR_SUBDOMAIN.workers.dev',
+    // 使用你提供的实际 Workers 域名
+    BASE_URL: 'https://ads-automation-api.2420133012.workers.dev',
     
     // API 端点
     ENDPOINTS: {
         LOGIN: '/api/auth/login',
-        PROFILE: '/api/auth/profile',
+        PROFILE: '/api/auth/profile', 
         LINKS: '/api/links',
         DASHBOARD_STATS: '/api/dashboard/stats',
         DOMAINS: '/api/domains'
@@ -23,7 +23,7 @@ if (window.location.hostname === 'localhost' || window.location.hostname === '12
     API_CONFIG.BASE_URL = 'http://localhost:8787'; // wrangler dev 的默认端口
 }
 
-// 根据部署情况手动设置（临时方案）
-// API_CONFIG.BASE_URL = 'https://ads-automation-api.workers.dev'; // 替换为你的实际域名
+// 调试：打印当前配置
+console.log('API Config BASE_URL:', API_CONFIG.BASE_URL);
 
 window.API_CONFIG = API_CONFIG;

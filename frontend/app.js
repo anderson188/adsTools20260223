@@ -5,14 +5,10 @@ class AdsManagerApp {
         this.currentUser = null;
         this.menus = [];
         
-        // 加载 API 配置
-        if (typeof API_CONFIG === 'undefined') {
-            // 如果 config.js 未加载，使用默认配置
-            this.apiBaseUrl = 'https://ads-automation-api.YOUR_SUBDOMAIN.workers.dev';
-        } else {
-            this.apiBaseUrl = API_CONFIG.BASE_URL;
-        }
+        // 硬编码API地址（基于成功部署的域名）
+        this.apiBaseUrl = 'https://ads-automation-api.2420133012.workers.dev';
         
+        console.log('使用API地址:', this.apiBaseUrl);
         this.init();
     }
 
@@ -88,6 +84,20 @@ class AdsManagerApp {
         document.getElementById('mainApp').classList.add('active');
     }
 
+    // 显示消息
+    showMessage(message, type = 'info') {
+        const messageEl = document.getElementById('loginMessage');
+        if (messageEl) {
+            messageEl.textContent = message;
+            messageEl.className = `message ${type}`;
+            messageEl.style.display = 'block';
+            
+            setTimeout(() => {
+                messageEl.style.display = 'none';
+            }, 3000);
+        }
+    }
+
     // 处理登录
     async handleLogin() {
         const username = document.getElementById('username').value;
@@ -95,6 +105,7 @@ class AdsManagerApp {
         const messageEl = document.getElementById('loginMessage');
 
         try {
+            console.log('尝试登录:', `${this.apiBaseUrl}/api/auth/login`);
             const response = await fetch(`${this.apiBaseUrl}/api/auth/login`, {
                 method: 'POST',
                 headers: {
@@ -103,7 +114,9 @@ class AdsManagerApp {
                 body: JSON.stringify({ username, password })
             });
 
+            console.log('登录响应状态:', response.status);
             const result = await response.json();
+            console.log('登录响应:', result);
 
             if (result.success) {
                 this.token = result.data.token;
@@ -122,7 +135,7 @@ class AdsManagerApp {
             }
         } catch (error) {
             console.error('Login error:', error);
-            this.showMessage('登录失败，请稍后重试', 'error');
+            this.showMessage('登录失败: ' + error.message, 'error');
         }
     }
 
@@ -308,6 +321,8 @@ class AdsManagerApp {
                 document.getElementById('runningLinks').textContent = stats.runningLinks || 0;
                 document.getElementById('stoppedLinks').textContent = stats.stoppedLinks || 0;
                 document.getElementById('totalRuns').textContent = stats.totalRuns || 0;
+            } else {
+                console.error('加载仪表板失败:', response.status);
             }
         } catch (error) {
             console.error('Load dashboard stats error:', error);
@@ -335,6 +350,8 @@ class AdsManagerApp {
             if (response.ok) {
                 const result = await response.json();
                 this.renderLinksTable(result.data);
+            } else {
+                console.error('加载链接列表失败:', response.status);
             }
         } catch (error) {
             console.error('Load links error:', error);
@@ -393,7 +410,8 @@ class AdsManagerApp {
                 this.loadDashboardStats();
                 this.showMessage(`链接已${newStatus === 'running' ? '启动' : '停止'}`, 'success');
             } else {
-                this.showMessage('操作失败', 'error');
+                const result = await response.json();
+                this.showMessage(result.message || '操作失败', 'error');
             }
         } catch (error) {
             console.error('Toggle link status error:', error);
@@ -470,21 +488,6 @@ class AdsManagerApp {
                 body: JSON.stringify(linkData)
             });
 
-    // 处理新增链接
-    async handleAddLink() {
-        const formData = new FormData(document.getElementById('addLinkForm'));
-        const linkData = Object.fromEntries(formData);
-        
-        try {
-            const response = await fetch('/api/links', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${this.token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(linkData)
-            });
-
             if (response.ok) {
                 this.closeModal();
                 this.loadLinks();
@@ -513,20 +516,6 @@ class AdsManagerApp {
     // 切换侧边栏（移动端）
     toggleSidebar() {
         document.querySelector('.sidebar').classList.toggle('mobile-open');
-    }
-
-    // 显示消息提示
-    showMessage(message, type = 'info') {
-        const messageEl = document.getElementById('loginMessage');
-        if (messageEl) {
-            messageEl.textContent = message;
-            messageEl.className = `message ${type}`;
-            messageEl.style.display = 'block';
-            
-            setTimeout(() => {
-                messageEl.style.display = 'none';
-            }, 3000);
-        }
     }
 }
 
