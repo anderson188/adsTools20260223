@@ -53,7 +53,7 @@ adsTools20260223/
 
 ### 2. 数据库初始化
 
-```bash
+```bash 11
 # 创建 D1 数据库
 wrangler d1 create ads_automation_db
 
