@@ -266,6 +266,11 @@ async function handleRequest(request, env) {
                         headers: { 'Content-Type': 'application/json' }
                     });
                 } else {
+                    // 预处理数据，确保所有值都不是undefined
+                    const runFrequency = linkData.run_frequency ? parseInt(linkData.run_frequency) : 60;
+                    const referer = linkData.referer || null;
+                    const status = linkData.status || 'stopped';
+                    
                     const db = new DatabaseManager(env.DB);
                     const link = await db.createAdLink({
                         userId: decoded.userId,
@@ -275,9 +280,9 @@ async function handleRequest(request, env) {
                         googleAdsAccountId: linkData.google_ads_account_id,
                         campaignName: linkData.campaign_name,
                         landingDomain: linkData.landing_domain,
-                        runFrequency: parseInt(linkData.run_frequency) || 60,
-                        referer: linkData.referer,
-                        status: linkData.status || 'stopped'
+                        runFrequency: isNaN(runFrequency) ? 60 : runFrequency,
+                        referer: referer,
+                        status: status
                     });
                     
                     response = new Response(JSON.stringify({

@@ -97,27 +97,21 @@ export default class DatabaseManager {
 
     // 仪表板统计
     async getDashboardStats(userId) {
-        const totalLinks = await this.db.prepare(
-            'SELECT COUNT(*) as count FROM ad_links WHERE user_id = ?'
-        ).bind(userId).first();
+        const getCount = async (query, params = []) => {
+            const result = await this.db.prepare(query).bind(...params).first();
+            return result ? result.count || 0 : 0;
+        };
 
-        const runningLinks = await this.db.prepare(
-            'SELECT COUNT(*) as count FROM ad_links WHERE user_id = ? AND status = ?'
-        ).bind(userId, 'running').first();
-
-        const stoppedLinks = await this.db.prepare(
-            'SELECT COUNT(*) as count FROM ad_links WHERE user_id = ? AND status = ?'
-        ).bind(userId, 'stopped').first();
-
-        const totalRuns = await this.db.prepare(
-            'SELECT COUNT(*) as count FROM run_logs WHERE ad_link_id IN (SELECT id FROM ad_links WHERE user_id = ?)'
-        ).bind(userId).first();
+        const totalLinks = await getCount('SELECT COUNT(*) as count FROM ad_links WHERE user_id = ?', [userId]);
+        const runningLinks = await getCount('SELECT COUNT(*) as count FROM ad_links WHERE user_id = ? AND status = ?', [userId, 'running']);
+        const stoppedLinks = await getCount('SELECT COUNT(*) as count FROM ad_links WHERE user_id = ? AND status = ?', [userId, 'stopped']);
+        const totalRuns = await getCount('SELECT COUNT(*) as count FROM run_logs WHERE ad_link_id IN (SELECT id FROM ad_links WHERE user_id = ?)', [userId]);
 
         return {
-            totalLinks: totalLinks.count || 0,
-            runningLinks: runningLinks.count || 0,
-            stoppedLinks: stoppedLinks.count || 0,
-            totalRuns: totalRuns.count || 0
+            totalLinks,
+            runningLinks,
+            stoppedLinks,
+            totalRuns
         };
     }
 
