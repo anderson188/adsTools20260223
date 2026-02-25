@@ -38,23 +38,32 @@ export default class DatabaseManager {
         let query = 'SELECT * FROM ad_links WHERE user_id = ?';
         const params = [userId];
 
-        if (filters.status) {
+        // 安全地添加过滤条件，避免undefined值
+        if (filters.status && String(filters.status).trim() !== '') {
             query += ' AND status = ?';
-            params.push(filters.status);
+            params.push(String(filters.status));
         }
-        if (filters.affiliate_name) {
+        if (filters.affiliate_name && String(filters.affiliate_name).trim() !== '') {
             query += ' AND affiliate_name LIKE ?';
-            params.push(`%${filters.affiliate_name}%`);
+            params.push(`%${String(filters.affiliate_name).trim()}%`);
         }
-        if (filters.campaign_name) {
+        if (filters.campaign_name && String(filters.campaign_name).trim() !== '') {
             query += ' AND campaign_name LIKE ?';
-            params.push(`%${filters.campaign_name}%`);
+            params.push(`%${String(filters.campaign_name).trim()}%`);
         }
 
         query += ' ORDER BY created_at DESC';
         
+        // 在执行前检查params中是否有undefined值
+        for (let i = 0; i < params.length; i++) {
+            if (params[i] === undefined) {
+                console.error(`Undefined parameter found at index ${i}`);
+                throw new Error(`Query parameter at index ${i} is undefined`);
+            }
+        }
+        
         const { results } = await this.db.prepare(query).bind(...params).all();
-        return results;
+        return results || [];
     }
 
     async createAdLink(linkData) {
@@ -181,6 +190,20 @@ export default class DatabaseManager {
         await this.db.prepare(
             'UPDATE domain_pools SET usage_count = usage_count + 1, updated_at = datetime(\'now\') WHERE id = ?'
         ).bind(domainId).run();
+    }
+
+    // 创建新域名
+    async createDomain(domainData) {
+        const { results } = await this.db.prepare(
+            `INSERT INTO domain_pools (domain, referer, status, created_at) 
+             VALUES (?, ?, ?, datetime('now'))`
+        ).bind(
+            domainData.domain,
+            domainData.referer || null,
+            domainData.status || 'active'
+        ).run();
+
+        return results.lastInsertRowid;
     }
 
     // 运行日志

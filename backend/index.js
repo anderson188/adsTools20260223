@@ -382,16 +382,27 @@ async function handleRequest(request, env) {
                 const auth = new AuthManager(env.JWT_SECRET);
                 const decoded = auth.verifyToken(token);
                 
-                const db = new DatabaseManager(env.DB);
-                const stats = await db.getDashboardStats(decoded.userId);
-                
-                response = new Response(JSON.stringify({
-                    success: true,
-                    data: stats
-                }), {
-                    status: 200,
-                    headers: { 'Content-Type': 'application/json' }
-                });
+                // 验证decoded对象包含必要的userId字段
+                if (!decoded || !decoded.userId) {
+                    response = new Response(JSON.stringify({
+                        success: false,
+                        message: '无效的认证令牌：缺少用户信息'
+                    }), {
+                        status: 401,
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                } else {
+                    const db = new DatabaseManager(env.DB);
+                    const stats = await db.getDashboardStats(decoded.userId);
+                    
+                    response = new Response(JSON.stringify({
+                        success: true,
+                        data: stats
+                    }), {
+                        status: 200,
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                }
             }
         } catch (error) {
             response = new Response(JSON.stringify({
@@ -452,25 +463,46 @@ async function handleRequest(request, env) {
                         headers: { 'Content-Type': 'application/json' }
                     });
                 } else {
-                    const domainData = await request.json();
-                    
-                    if (!domainData.domain) {
+                    try {
+                        const domainData = await request.json();
+                        
+                        if (!domainData.domain || String(domainData.domain).trim() === '') {
+                            response = new Response(JSON.stringify({
+                                success: false,
+                                message: '域名不能为空'
+                            }), {
+                                status: 400,
+                                headers: { 'Content-Type': 'application/json' }
+                            });
+                        } else {
+                            // 实现真实的数据库操作
+                            const domainId = await db.createDomain({
+                                domain: String(domainData.domain).trim(),
+                                referer: domainData.referer ? String(domainData.referer).trim() : null,
+                                status: domainData.status || 'active'
+                            });
+                            
+                            response = new Response(JSON.stringify({
+                                success: true,
+                                message: '域名添加成功',
+                                data: { 
+                                    id: domainId,
+                                    domain: String(domainData.domain).trim(),
+                                    referer: domainData.referer || null,
+                                    status: domainData.status || 'active'
+                                }
+                            }), {
+                                status: 201,
+                                headers: { 'Content-Type': 'application/json' }
+                            });
+                        }
+                    } catch (error) {
+                        console.error('Create domain error:', error);
                         response = new Response(JSON.stringify({
                             success: false,
-                            message: '域名不能为空'
+                            message: '添加域名失败: ' + error.message
                         }), {
-                            status: 400,
-                            headers: { 'Content-Type': 'application/json' }
-                        });
-                    } else {
-                        // 这里应该添加插入域名的数据库操作
-                        // 简化处理，返回成功
-                        response = new Response(JSON.stringify({
-                            success: true,
-                            message: '域名添加成功',
-                            data: { ...domainData, id: Date.now() }
-                        }), {
-                            status: 201,
+                            status: 500,
                             headers: { 'Content-Type': 'application/json' }
                         });
                     }
