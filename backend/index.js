@@ -194,22 +194,33 @@ async function handleRequest(request, env) {
                 const auth = new AuthManager(env.JWT_SECRET);
                 const decoded = auth.verifyToken(token);
                 
-                const db = new DatabaseManager(env.DB);
-                const url = new URL(request.url);
-                const filters = {
-                    status: url.searchParams.get('status'),
-                    affiliate_name: url.searchParams.get('affiliate_name'),
-                    campaign_name: url.searchParams.get('campaign_name')
-                };
-                
-                const links = await db.getAdLinksByUserId(decoded.userId, filters);
-                response = new Response(JSON.stringify({
-                    success: true,
-                    data: links
-                }), {
-                    status: 200,
-                    headers: { 'Content-Type': 'application/json' }
-                });
+                // 验证decoded对象包含必要的userId字段
+                if (!decoded || !decoded.userId) {
+                    response = new Response(JSON.stringify({
+                        success: false,
+                        message: '无效的认证令牌：缺少用户信息'
+                    }), {
+                        status: 401,
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                } else {
+                    const db = new DatabaseManager(env.DB);
+                    const url = new URL(request.url);
+                    const filters = {
+                        status: url.searchParams.get('status'),
+                        affiliate_name: url.searchParams.get('affiliate_name'),
+                        campaign_name: url.searchParams.get('campaign_name')
+                    };
+                    
+                    const links = await db.getAdLinksByUserId(decoded.userId, filters);
+                    response = new Response(JSON.stringify({
+                        success: true,
+                        data: links
+                    }), {
+                        status: 200,
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                }
             }
         } catch (error) {
             response = new Response(JSON.stringify({
@@ -380,26 +391,40 @@ async function handleRequest(request, env) {
             } else {
                 const token = authHeader.substring(7);
                 const auth = new AuthManager(env.JWT_SECRET);
-                const decoded = auth.verifyToken(token);
                 
-                // 验证decoded对象包含必要的userId字段
-                if (!decoded || !decoded.userId) {
+                try {
+                    const decoded = auth.verifyToken(token);
+                    console.log('Decoded token:', decoded); // 调试信息
+                    
+                    // 验证decoded对象包含必要的userId字段
+                    if (!decoded || decoded.userId === undefined || decoded.userId === null) {
+                        console.log('Token missing userId, decoded:', decoded); // 调试信息
+                        response = new Response(JSON.stringify({
+                            success: false,
+                            message: '无效的认证令牌：缺少用户信息'
+                        }), {
+                            status: 401,
+                            headers: { 'Content-Type': 'application/json' }
+                        });
+                    } else {
+                        const db = new DatabaseManager(env.DB);
+                        const stats = await db.getDashboardStats(decoded.userId);
+                        
+                        response = new Response(JSON.stringify({
+                            success: true,
+                            data: stats
+                        }), {
+                            status: 200,
+                            headers: { 'Content-Type': 'application/json' }
+                        });
+                    }
+                } catch (error) {
+                    console.error('Token verification error:', error); // 调试信息
                     response = new Response(JSON.stringify({
                         success: false,
-                        message: '无效的认证令牌：缺少用户信息'
+                        message: '认证令牌验证失败: ' + error.message
                     }), {
                         status: 401,
-                        headers: { 'Content-Type': 'application/json' }
-                    });
-                } else {
-                    const db = new DatabaseManager(env.DB);
-                    const stats = await db.getDashboardStats(decoded.userId);
-                    
-                    response = new Response(JSON.stringify({
-                        success: true,
-                        data: stats
-                    }), {
-                        status: 200,
                         headers: { 'Content-Type': 'application/json' }
                     });
                 }
