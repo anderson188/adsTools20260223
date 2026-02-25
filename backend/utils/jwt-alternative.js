@@ -1,5 +1,6 @@
 // JWT替代方案 - 纯JavaScript实现
 // 当jsonwebtoken不可用时使用
+// 注意：这些函数在Workers环境中运行，使用Web Crypto API
 
 export class SimpleJWT {
     constructor(secret) {
@@ -8,25 +9,45 @@ export class SimpleJWT {
 
     // Base64 URL编码
     base64UrlEncode(str) {
-        return btoa(str)
-            .replace(/=/g, '')
-            .replace(/\+/g, '-')
-            .replace(/\//g, '_');
+        if (typeof btoa !== 'undefined') {
+            // 浏览器/Workers环境
+            return btoa(str)
+                .replace(/=/g, '')
+                .replace(/\+/g, '-')
+                .replace(/\//g, '_');
+        } else {
+            // Node.js环境
+            return Buffer.from(str).toString('base64')
+                .replace(/=/g, '')
+                .replace(/\+/g, '-')
+                .replace(/\//g, '_');
+        }
     }
 
     // Base64 URL解码
     base64UrlDecode(str) {
-        str = str.replace(/-/g, '+').replace(/_/g, '/');
-        return atob(str);
+        str = str.replace(/-/g, '+').replace(/_/g, '/')
+        if (typeof atob !== 'undefined') {
+            return atob(str);
+        } else {
+            return Buffer.from(str, 'base64').toString();
+        }
     }
 
     // SHA-256哈希
     async sha256(text) {
-        const encoder = new TextEncoder();
-        const data = encoder.encode(text);
-        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
-        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        if (typeof crypto !== 'undefined' && crypto.subtle) {
+            // Workers环境
+            const encoder = new TextEncoder();
+            const data = encoder.encode(text);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        } else {
+            // Node.js环境模拟
+            const crypto = require('crypto');
+            return crypto.createHash('sha256').update(text).digest('hex');
+        }
     }
 
     // 生成JWT Token
@@ -92,3 +113,6 @@ export class SimpleJWT {
         }
     }
 }
+
+// 默认导出
+export default SimpleJWT;

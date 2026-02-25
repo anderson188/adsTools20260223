@@ -58,6 +58,10 @@ export default class DatabaseManager {
     }
 
     async createAdLink(linkData) {
+        // 处理可选字段，确保undefined转换为null
+        const referer = linkData.referer || null;
+        const status = linkData.status || 'stopped';
+        
         const { results } = await this.db.prepare(
             `INSERT INTO ad_links (user_id, affiliate_name, affiliate_link, mcc_account_id, 
              google_ads_account_id, campaign_name, landing_domain, run_frequency, referer, status, created_at) 
@@ -71,8 +75,8 @@ export default class DatabaseManager {
             linkData.campaignName,
             linkData.landingDomain,
             linkData.runFrequency,
-            linkData.referer,
-            linkData.status
+            referer,
+            status
         ).run();
 
         // 获取刚插入的记录
@@ -120,14 +124,14 @@ export default class DatabaseManager {
     // 域名相关操作
     async getActiveDomains() {
         const { results } = await this.db.prepare(
-            'SELECT * FROM domains WHERE status = ? ORDER BY usage_count ASC'
+            'SELECT * FROM domain_pools WHERE status = ? ORDER BY usage_count ASC'
         ).bind('active').all();
         return results;
     }
 
     async updateDomainUsage(domainId) {
         await this.db.prepare(
-            'UPDATE domains SET usage_count = usage_count + 1, updated_at = datetime(\'now\') WHERE id = ?'
+            'UPDATE domain_pools SET usage_count = usage_count + 1, updated_at = datetime(\'now\') WHERE id = ?'
         ).bind(domainId).run();
     }
 

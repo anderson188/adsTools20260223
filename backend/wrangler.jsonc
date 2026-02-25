@@ -1,0 +1,24 @@
+{
+  "name": "ads-automation-api",
+  "compatibility_date": "2026-02-24",
+  "compatibility_flags": ["nodejs_compat"],
+  "main": "index.js",
+  "type": "javascript",
+  "observability": {
+    "enabled": true
+  },
+  "vars": {
+    "JWT_SECRET": "your-jwt-secret-key-here-change-in-production",
+    "GOOGLE_ADS_DEVELOPER_TOKEN": "your-developer-token",
+    "GOOGLE_ADS_CLIENT_ID": "your-client-id",
+    "GOOGLE_ADS_CLIENT_SECRET": "your-client-secret",
+    "GOOGLE_ADS_REFRESH_TOKEN": "your-refresh-token"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "ads_automation",
+      "database_id": "a39c88b7-2ccc-490b-8d23-d55fd0eb93c3"
+    }
+  ]
+}

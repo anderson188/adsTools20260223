@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS menus (
     icon VARCHAR(50),
     parent_id INTEGER,
     sort_order INTEGER DEFAULT 0,
+    status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (parent_id) REFERENCES menus(id)
 );
