@@ -58,33 +58,87 @@ export default class DatabaseManager {
     }
 
     async createAdLink(linkData) {
-        // 处理可选字段，确保undefined转换为null
-        const referer = linkData.referer || null;
-        const status = linkData.status || 'stopped';
+        // 严格验证所有必需字段，确保没有undefined值
+        const validateField = (value, fieldName) => {
+            if (value === undefined || value === null) {
+                throw new Error(`Field '${fieldName}' cannot be undefined or null`);
+            }
+            return value;
+        };
         
-        const { results } = await this.db.prepare(
-            `INSERT INTO ad_links (user_id, affiliate_name, affiliate_link, mcc_account_id, 
-             google_ads_account_id, campaign_name, landing_domain, run_frequency, referer, status, created_at) 
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`
-        ).bind(
-            linkData.userId,
-            linkData.affiliateName,
-            linkData.affiliateLink,
-            linkData.mccAccountId,
-            linkData.googleAdsAccountId,
-            linkData.campaignName,
-            linkData.landingDomain,
-            linkData.runFrequency,
-            referer,
-            status
-        ).run();
+        // 确保所有值都是有效的基本类型，不是对象或undefined
+        const sanitizeValue = (value) => {
+            if (value === undefined || value === null) {
+                return null;
+            }
+            // 如果是对象，转换为字符串或null
+            if (typeof value === 'object') {
+                return null;
+            }
+            // 确保是基本类型
+            return value;
+        };
+        
+        try {
+            // 验证并清理所有字段
+            const userId = validateField(linkData.userId, 'userId');
+            const affiliateName = validateField(String(linkData.affiliateName), 'affiliateName');
+            const affiliateLink = validateField(String(linkData.affiliateLink), 'affiliateLink');
+            const mccAccountId = sanitizeValue(linkData.mccAccountId);
+            const googleAdsAccountId = validateField(String(linkData.googleAdsAccountId), 'googleAdsAccountId');
+            const campaignName = validateField(String(linkData.campaignName), 'campaignName');
+            const landingDomain = validateField(String(linkData.landingDomain), 'landingDomain');
+            
+            // 处理数值字段
+            let runFrequency = 60;
+            if (linkData.runFrequency !== undefined && linkData.runFrequency !== null) {
+                const parsed = parseInt(String(linkData.runFrequency));
+                if (!isNaN(parsed) && parsed > 0) {
+                    runFrequency = parsed;
+                }
+            }
+            
+            const referer = sanitizeValue(linkData.referer);
+            const status = linkData.status || 'stopped';
+            
+            // 确保所有绑定值都不是undefined
+            const bindValues = [
+                userId,
+                affiliateName,
+                affiliateLink,
+                mccAccountId,
+                googleAdsAccountId,
+                campaignName,
+                landingDomain,
+                runFrequency,
+                referer,
+                status
+            ];
+            
+            // 最后检查：确保没有undefined值
+            for (let i = 0; i < bindValues.length; i++) {
+                if (bindValues[i] === undefined) {
+                    throw new Error(`Bind value at position ${i} is undefined`);
+                }
+            }
+            
+            const { results } = await this.db.prepare(
+                `INSERT INTO ad_links (user_id, affiliate_name, affiliate_link, mcc_account_id, 
+                 google_ads_account_id, campaign_name, landing_domain, run_frequency, referer, status, created_at) 
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`
+            ).bind(...bindValues).run();
 
-        // 获取刚插入的记录
-        const { results: inserted } = await this.db.prepare(
-            'SELECT * FROM ad_links WHERE id = ?'
-        ).bind(results.lastInsertRowid).all();
+            // 获取刚插入的记录
+            const { results: inserted } = await this.db.prepare(
+                'SELECT * FROM ad_links WHERE id = ?'
+            ).bind(results.lastInsertRowid).all();
 
-        return inserted.length > 0 ? inserted[0] : { id: results.lastInsertRowid, ...linkData };
+            return inserted.length > 0 ? inserted[0] : { id: results.lastInsertRowid, ...linkData };
+            
+        } catch (error) {
+            console.error('Error in createAdLink:', error);
+            throw new Error('Failed to create ad link: ' + error.message);
+        }
     }
 
     async updateAdLinkStatus(linkId, status, userId) {
